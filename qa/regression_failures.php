@@ -8,7 +8,7 @@
  *  F3  fresh order picks stale rows : a quantity in a NEW order must not be read as a row pick
  *  F4  conflicted multi-line        : add+remove/correction in one message is flagged, not guessed
  */
-foreach (['CatalogueMatcher','CategoryDictionary','GreetingDictionary','LocationDictionary','FaqDictionary','IntentClassifier','ClarificationFlow','MultiLineGuard','ConversationStageAnalyzer','SalesAssistantBrain','DiscoveryContextBuilder','CartCorrection','CartEditor'] as $c) {
+foreach (['CatalogueMatcher','CategoryDictionary','GreetingDictionary','LocationDictionary','FaqDictionary','IntentClassifier','ClarificationFlow','MultiLineGuard','ConversationStageAnalyzer','SalesAssistantBrain','DiscoveryContextBuilder','CartCorrection','CartEditor','AiIntentInterpreter'] as $c) {
     require dirname(__DIR__).'/app/Services/Bot/'.$c.'.php';
 }
 use App\Services\Bot\IntentClassifier as IC;
@@ -167,6 +167,57 @@ ok('"make it 5" is an edit',                    CE::isEditIntent('make it 5'));
 ok('"i need 10 apples" is NOT an edit (new order)', ! CE::isEditIntent('i need 10 apples'));
 ok('"add 5 coke" is NOT an edit',               ! CE::isEditIntent('add 5 coke'));
 ok('"update my address" (no qty) is NOT an edit', ! CE::isEditIntent('update my address'));
+
+sec('F10 — AI interpreter is understanding-only and can NEVER execute commerce');
+use App\Services\Bot\AiIntentInterpreter as AII;
+ok('valid recommend kept',        (AII::validate(['intent'=>'recommend_product','category'=>'rice','confidence'=>0.9])['intent'] ?? '') === 'recommend_product');
+ok('"checkout" intent rejected',  (AII::validate(['intent'=>'checkout','confidence'=>0.99])['intent'] ?? '') === 'unclear');
+ok('"add_to_cart" rejected',      (AII::validate(['intent'=>'add_to_cart','quantity'=>10,'confidence'=>0.99])['intent'] ?? '') === 'unclear');
+ok('"set_quantity" rejected',     (AII::validate(['intent'=>'set_quantity','qty'=>99,'confidence'=>0.99])['intent'] ?? '') === 'unclear');
+$stray = AII::validate(['intent'=>'recommend_product','category'=>'rice','total'=>99999,'quantity'=>50,'price'=>1,'confidence'=>0.9]);
+ok('stray total/quantity/price stripped', ! isset($stray['total']) && ! isset($stray['quantity']) && ! isset($stray['price']));
+ok('low confidence -> unclear (asks, not guesses)', (AII::validate(['intent'=>'recommend_product','category'=>'rice','confidence'=>0.4])['intent'] ?? '') === 'unclear');
+ok('confidence clamped to 0..1',  (AII::validate(['intent'=>'greeting','confidence'=>5])['confidence'] ?? -1) === 1.0);
+ok('garbage -> unclear',          (AII::validate(['foo'=>'bar'])['intent'] ?? '') === 'unclear');
+ok('non-array -> null',           AII::validate('checkout now') === null);
+// toAction only ever points at READ-ONLY handlers (never add/remove/checkout)
+$handlers = [];
+foreach ([['intent'=>'recommend_product'],['intent'=>'compare_value'],['intent'=>'delivery_question'],['intent'=>'location_pin_question'],['intent'=>'product_search'],['intent'=>'unclear']] as $iv) $handlers[] = AII::toAction($iv)['handler'];
+ok('every action handler is read-only', empty(array_intersect($handlers, ['add','remove','checkout','set_quantity','clear'])));
+ok('disabled without an API key (no-op by default)', ! (new AII())->isEnabled());
+ok('interpret() returns null when disabled', (new AII())->interpret('need rice') === null);
+
+sec('F11 — multi-message discovery accumulates one context and recommends (not search)');
+$dcat = [
+    ['id'=>1,'name'=>'India Gate Basmati 1KG','price'=>14000,'stock'=>9,'category'=>'Rice','keywords'=>''],
+    ['id'=>2,'name'=>'Maharashtra Kolam Rice 5KG','price'=>30000,'stock'=>9,'category'=>'Rice','keywords'=>''],
+    ['id'=>3,'name'=>'Coca Cola 500ml','price'=>2000,'stock'=>9,'category'=>'Drinks','keywords'=>''],
+];
+$act = null;
+foreach (['Need rice','Not basmati','Daily use','Family of 5','Not expensive'] as $m) {
+    $dd = DCB::decide($act, $m, $dcat);
+    if (in_array($dd['action'], ['enter','enrich','ask'], true)) $act = $dd['ctx'];
+}
+ok('"Need rice" enters discovery (not search)', DCB::decide(null,'Need rice',$dcat)['action'] === 'enter');
+ok('"Not basmati" enriches, never searches basmati', DCB::decide(['category'=>'rice','exclude'=>[]],'Not basmati',$dcat)['action'] === 'enrich');
+ok('category accumulates as rice',        ($act['category'] ?? '') === 'rice');
+ok('exclude accumulates basmati',         in_array('basmati', $act['exclude'] ?? [], true));
+ok('usage accumulates daily',             ($act['usage'] ?? '') === 'daily');
+ok('family_size accumulates 5',           ($act['family_size'] ?? 0) === 5);
+ok('budget accumulates low',              ($act['budget'] ?? '') === 'low');
+$round = DCB::build(DCB::toOpinionText($act), $dcat);
+ok('accumulated context round-trips through the tested opinion path',
+   ($round['product'] ?? '') === 'rice' && ($round['family_size'] ?? 0) === 5
+   && ($round['budget'] ?? '') === 'low' && ($round['usage'] ?? '') === 'daily'
+   && in_array('basmati', $round['exclude'] ?? [], true));
+// break-out & non-hijack
+ok('"5 coke" mid-discovery breaks out (concrete add)', DCB::decide($act,'5 coke',$dcat)['action'] === 'skip');
+ok('"rice 5kg" is a concrete add, not discovery',      DCB::looksLikeConcreteAdd('rice 5kg',$dcat));
+ok('"family of 5" is NOT a concrete add',          ! DCB::looksLikeConcreteAdd('family of 5',$dcat));
+ok('plain "rice" does NOT enter discovery (still search)', DCB::decide(null,'rice',$dcat)['action'] === 'skip');
+ok('cold qualifier "Not basmati" asks for the category',   DCB::decide(null,'Not basmati',$dcat)['action'] === 'ask');
+ok('"which rice is good" stays with SA, not discovery',    DCB::decide(null,'which rice is good',$dcat)['action'] === 'skip');
+ok('selection "2" mid-discovery skips (handled by selection)', DCB::decide($act,'2',$dcat)['action'] === 'skip');
 
 echo "\n========= RESULT =========\n";
 echo "PASS $PASS  FAIL $FAIL\n";
