@@ -8,7 +8,7 @@
  *  F3  fresh order picks stale rows : a quantity in a NEW order must not be read as a row pick
  *  F4  conflicted multi-line        : add+remove/correction in one message is flagged, not guessed
  */
-foreach (['CatalogueMatcher','CategoryDictionary','GreetingDictionary','LocationDictionary','FaqDictionary','IntentClassifier','ClarificationFlow','MultiLineGuard','ConversationStageAnalyzer','SalesAssistantBrain','DiscoveryContextBuilder'] as $c) {
+foreach (['CatalogueMatcher','CategoryDictionary','GreetingDictionary','LocationDictionary','FaqDictionary','IntentClassifier','ClarificationFlow','MultiLineGuard','ConversationStageAnalyzer','SalesAssistantBrain','DiscoveryContextBuilder','CartCorrection','CartEditor'] as $c) {
     require dirname(__DIR__).'/app/Services/Bot/'.$c.'.php';
 }
 use App\Services\Bot\IntentClassifier as IC;
@@ -154,6 +154,19 @@ ok('per-kg of 10KG @137500 = 13750',     abs($rank[0]['unit_price'] - 13750) < 1
 ok('5KG @70000 = 14000/kg',              abs((70000.0/5) - 14000) < 1);
 ok('parseSize 500ml -> 0.5 l',           SAB::parseSize('Oil 500ml') == ['value'=>0.5,'unit'=>'l']);
 ok('parseSize 2kg -> 2 kg',              SAB::parseSize('Sugar 2kg') == ['value'=>2.0,'unit'=>'kg']);
+
+sec('F9 — "i need 10 pcs update order" updates quantity, not a product search');
+use App\Services\Bot\CartEditor as CE;
+$onecart = [['product_id'=>1,'name'=>'Balaji Wafers 45G','price'=>3000,'qty'=>1]];
+ok('"i need 10 pcs update order" is an edit',   CE::isEditIntent('i need 10 pcs update order'));
+$ap = CE::apply($onecart, 'i need 10 pcs update order');
+ok('quantity updated to 10',                    $ap !== null && ($ap['cart'][0]['qty'] ?? 0) === 10);
+ok('product unchanged (still Balaji Wafers)',   $ap['cart'][0]['name'] === 'Balaji Wafers 45G');
+ok('"update order to 10" is an edit',           CE::isEditIntent('update order to 10'));
+ok('"make it 5" is an edit',                    CE::isEditIntent('make it 5'));
+ok('"i need 10 apples" is NOT an edit (new order)', ! CE::isEditIntent('i need 10 apples'));
+ok('"add 5 coke" is NOT an edit',               ! CE::isEditIntent('add 5 coke'));
+ok('"update my address" (no qty) is NOT an edit', ! CE::isEditIntent('update my address'));
 
 echo "\n========= RESULT =========\n";
 echo "PASS $PASS  FAIL $FAIL\n";
