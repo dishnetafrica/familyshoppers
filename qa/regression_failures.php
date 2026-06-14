@@ -122,6 +122,39 @@ ok('budget=low picks cheapest',      SA::pickRecommendation('rice',$ricecat,null
 ok('budget=high picks dearest',      SA::pickRecommendation('rice',$ricecat,null,[],['budget'=>'high'])['product']['id'] === 1);
 ok('sizeValue 5kg > 1kg',            SA::sizeValue('Ravi Rice 5kg') > SA::sizeValue('Sona Rice 1kg'));
 
+sec('F8 — unit-price reasoning + head-noun filtering (rice vs rice-snacks)');
+use App\Services\Bot\SalesAssistantBrain as SAB;
+// head-position: rice-modifier snacks excluded even when miscategorised as "Rice"
+$ricesnacks = [
+  ['id'=>1,'name'=>'D.rice Samosa','price'=>3000,'stock'=>20,'category'=>'Rice','keywords'=>''],
+  ['id'=>2,'name'=>'Rice Crisps 50g','price'=>2000,'stock'=>20,'category'=>'Rice','keywords'=>''],
+  ['id'=>3,'name'=>'Kolam Rice 5KG','price'=>30000,'stock'=>20,'category'=>'Rice','keywords'=>''],
+  ['id'=>4,'name'=>'Numa Rice 5KG','price'=>28000,'stock'=>20,'category'=>'Rice','keywords'=>''],
+];
+$cohere = $names(SAB::coherentCandidates('rice', (new CatalogueMatcher())->search('rice', $ricesnacks)));
+ok('rice-snack "D.rice Samosa" excluded (modifier, not head)', ! in_array('D.rice Samosa', $cohere, true));
+ok('"Rice Crisps" excluded (modifier)',  ! in_array('Rice Crisps 50g', $cohere, true));
+ok('real rices kept',                    in_array('Kolam Rice 5KG', $cohere, true) && in_array('Numa Rice 5KG', $cohere, true));
+
+// value/unit-price question
+ok('"cheaper ... per kg" detected as value Q', SAB::detectValue('which one is cheaper in india gate per kg'));
+ok('"per kg" -> unit kg',               SAB::valueUnit('cheapest per kg') === 'kg');
+ok('"per litre" -> unit l',             SAB::valueUnit('best value per litre') === 'l');
+ok('plain "which is good" not a value Q', ! SAB::detectValue('which one is good'));
+
+$ig = [
+  ['id'=>1,'name'=>'India Gate Feast Rozzana 1KG','price'=>13800,'stock'=>9,'category'=>'Rice','keywords'=>''],
+  ['id'=>2,'name'=>'India Gate Basmati 1KG','price'=>14000,'stock'=>9,'category'=>'Rice','keywords'=>''],
+  ['id'=>3,'name'=>'India Gate Sella Basmati 10KG','price'=>137500,'stock'=>9,'category'=>'Rice','keywords'=>''],
+  ['id'=>4,'name'=>'India Gate Excel 5KG','price'=>70000,'stock'=>9,'category'=>'Rice','keywords'=>''],
+];
+$rank = SAB::unitPriceRanking($ig, 'kg');
+ok('cheapest per-kg is the 10KG Sella',  $rank[0]['product']['id'] === 3);
+ok('per-kg of 10KG @137500 = 13750',     abs($rank[0]['unit_price'] - 13750) < 1);
+ok('5KG @70000 = 14000/kg',              abs((70000.0/5) - 14000) < 1);
+ok('parseSize 500ml -> 0.5 l',           SAB::parseSize('Oil 500ml') == ['value'=>0.5,'unit'=>'l']);
+ok('parseSize 2kg -> 2 kg',              SAB::parseSize('Sugar 2kg') == ['value'=>2.0,'unit'=>'kg']);
+
 echo "\n========= RESULT =========\n";
 echo "PASS $PASS  FAIL $FAIL\n";
 exit($FAIL===0?0:1);

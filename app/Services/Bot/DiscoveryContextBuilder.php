@@ -31,6 +31,7 @@ class DiscoveryContextBuilder
             'usage'       => self::usage($segment),
             'family_size' => self::familySize($segment),
             'budget'      => self::budget($segment),
+            'size'        => SalesAssistantBrain::parseSize($segment),
         ];
     }
 
