@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CloudBSS — Turn Your WhatsApp Into an Online Store</title>
+<meta name="description" content="CloudBSS turns your WhatsApp into a store that takes orders, tracks deliveries and serves customers 24/7. No app required. Built for Uganda businesses. Start free.">
+<meta property="og:title" content="CloudBSS — Turn Your WhatsApp Into an Online Store">
+<meta property="og:description" content="Take orders automatically. Track deliveries. Manage products. Serve customers 24/7. No app required.">
+<meta property="og:url" content="https://mycloudbss.com">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0d1712;--ink-2:#33453b;--mute:#6a7a70;
+    --bg:#ffffff;--paper:#f2f6f3;--card:#ffffff;
+    --green:#0a7d3c;--green-d:#06602d;--green-bright:#16b85e;
+    --mint:#e3f7e9;--mint-line:#c4e9d0;
+    --line:#e7ece8;--tick:#34b7f1;--amber:#f5b301;
+    --radius:16px;--maxw:1140px;
+    --shadow:0 1px 2px rgba(13,23,18,.04),0 18px 40px -22px rgba(13,23,18,.22);
+    --shadow-sm:0 1px 2px rgba(13,23,18,.05),0 8px 20px -14px rgba(13,23,18,.18);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:"Hanken Grotesk",system-ui,sans-serif;color:var(--ink);background:var(--bg);font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  img{max-width:100%}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+  .mono{font-family:"Space Mono",monospace}
+  .eyebrow{font-family:"Space Mono",monospace;font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--green-d);font-weight:700}
+  h1,h2,h3{line-height:1.08;letter-spacing:-.022em;font-weight:800}
+  h1{font-size:clamp(33px,5.3vw,58px)}
+  h2{font-size:clamp(27px,3.7vw,42px)}
+  h3{font-size:19px;font-weight:700;letter-spacing:-.01em}
+  p{color:var(--ink-2)}
+  .lead{font-size:clamp(17px,1.7vw,20px);color:var(--ink-2)}
+  .center{text-align:center}
+  .sec-head{max-width:62ch;margin:0 auto 46px}
+  .sec-head.l{margin-left:0}
+  .sec-head h2{margin:12px 0 12px}
+
+  /* buttons */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;font-weight:700;font-size:16px;padding:14px 24px;border-radius:12px;border:1.6px solid transparent;cursor:pointer;transition:transform .15s,background .15s,box-shadow .15s;white-space:nowrap}
+  .btn:hover{transform:translateY(-2px)}
+  .btn-green{background:var(--green);color:#fff;box-shadow:0 14px 26px -14px rgba(10,125,60,.95)}
+  .btn-green:hover{background:var(--green-d)}
+  .btn-ghost{background:#fff;border-color:var(--line);color:var(--ink)}
+  .btn-ghost:hover{border-color:var(--green);color:var(--green-d)}
+  .wa-ico{width:19px;height:19px;flex-shrink:0}
+  .play{width:20px;height:20px;border-radius:50%;background:var(--mint);display:inline-grid;place-items:center;color:var(--green-d)}
+
+  /* header */
+  header.nav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  .nav-in{display:flex;align-items:center;gap:14px;height:66px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;letter-spacing:-.02em}
+  .brand small{font-weight:800;color:var(--green-d)}
+  .mark{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(150deg,var(--green-bright),var(--green-d))}
+  .nav-links{display:flex;align-items:center;gap:26px;margin-left:auto}
+  .nav-links a.lnk{font-weight:600;font-size:15px;color:var(--ink-2)}
+  .nav-links a.lnk:hover{color:var(--ink)}
+  .nav-login{font-weight:700;font-size:15px;color:var(--green-d)}
+  .burger{display:none;margin-left:auto;font-size:24px;background:none;border:none;cursor:pointer;color:var(--ink)}
+
+  /* hero */
+  .hero{padding:72px 0 56px;position:relative;overflow:hidden}
+  .hero::before{content:"";position:absolute;top:-160px;right:-120px;width:520px;height:520px;border-radius:50%;background:radial-gradient(circle,rgba(22,184,94,.10),transparent 65%);z-index:0}
+  .hero-grid{position:relative;z-index:1;display:grid;grid-template-columns:1.04fr .96fr;gap:54px;align-items:center}
+  .hero h1{margin:18px 0 20px}
+  .hero h1 em{font-style:normal;color:var(--green-d)}
+  .hero .sub{font-size:18.5px;color:var(--ink-2);max-width:40ch}
+  .hero .sub b{color:var(--ink);font-weight:700}
+  .hero-cta{display:flex;flex-wrap:wrap;gap:13px;margin:28px 0 16px}
+  .hero-note{font-size:14.5px;color:var(--mute);display:flex;gap:8px;align-items:center}
+
+  /* hero composition: phone + floating cards */
+  .stage{position:relative;display:flex;justify-content:center}
+  .floatcard{position:absolute;background:#fff;border:1px solid var(--line);border-radius:13px;box-shadow:var(--shadow);padding:12px 14px;z-index:3}
+  .fc-dash{top:14px;left:-12px;width:198px}
+  .fc-track{bottom:26px;right:-10px;width:210px}
+  .fc-title{font-size:11px;font-weight:700;color:var(--mute);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+  .fc-row{display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0;color:var(--ink-2)}
+  .fc-row b{color:var(--ink)}
+  .pill{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:9px;background:var(--mint);color:var(--green-d)}
+  .track-line{display:flex;align-items:center;gap:6px;margin-top:6px}
+  .track-line .d{width:9px;height:9px;border-radius:50%;background:var(--green)}
+  .track-line .ln{flex:1;height:2px;background:var(--mint-line)}
+  .track-line .d.off{background:#d7ddd9}
+
+  /* phone */
+  .phone{position:relative;width:300px;max-width:84vw;background:#111114;border-radius:56px;padding:9px;
+    box-shadow:0 44px 80px -34px rgba(13,23,18,.6),inset 0 0 0 2px #34343a,inset 0 0 0 10px #050507}
+  .phone::before{content:"";position:absolute;right:-2px;top:160px;width:3px;height:64px;border-radius:0 3px 3px 0;background:#26262b}
+  .phone::after{content:"";position:absolute;left:-2px;top:120px;width:3px;height:44px;border-radius:3px 0 0 3px;background:#26262b;box-shadow:0 58px 0 #26262b}
+  .screen{position:relative;display:flex;flex-direction:column;background:#e9e4dc;border-radius:48px;overflow:hidden;min-height:560px;
+    background-image:radial-gradient(rgba(0,0,0,.035) 1px,transparent 1px);background-size:17px 17px}
+  .island{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:84px;height:26px;background:#000;border-radius:14px;z-index:6}
+  .sbar{background:var(--green-d);color:#fff;display:flex;justify-content:space-between;align-items:center;padding:13px 24px 5px;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+  .sbar .sig{display:flex;gap:6px;align-items:center;opacity:.95}
+  .chat-top{background:var(--green-d);color:#fff;display:flex;align-items:center;gap:9px;padding:5px 14px 12px}
+  .chat-top .bk{font-size:18px;opacity:.85;margin-right:-3px}
+  .chat-top .ava{width:34px;height:34px;border-radius:50%;background:#ffffff26;display:grid;place-items:center;font-weight:800;font-size:13px}
+  .chat-top .nm{font-weight:700;font-size:14.5px;line-height:1.1}
+  .chat-top .st{font-size:11px;color:#ffffffc4}
+  .chat-top .icns{margin-left:auto;display:flex;gap:14px;opacity:.9}
+  .chat-body{flex:1;padding:14px 12px;display:flex;flex-direction:column;gap:7px}
+  .bub{max-width:82%;padding:7px 10px 6px;border-radius:10px;font-size:13.5px;line-height:1.38;box-shadow:0 1px .4px rgba(0,0,0,.12);
+    opacity:0;transform:translateY(7px);transition:opacity .35s,transform .35s}
+  .bub.show{opacity:1;transform:none}
+  .bub .t{display:block;text-align:right;font-size:9.5px;color:#0006;margin-top:1px}
+  .bub.in{background:#fff;align-self:flex-start;border-top-left-radius:2px}
+  .bub.out{background:var(--mint);align-self:flex-end;border-top-right-radius:2px}
+  .bub.out .t{color:#0a7d3caa}
+  .bub .tick{color:var(--tick);font-weight:700}
+  .bub b{font-weight:700}
+  .ibar{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#f3f1ea}
+  .ibar .fld{flex:1;background:#fff;border-radius:18px;padding:8px 14px;font-size:12.5px;color:#9aa6a0}
+  .ibar .snd{width:33px;height:33px;border-radius:50%;background:var(--green);display:grid;place-items:center;flex-shrink:0}
+
+  /* strip */
+  .strip{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--paper)}
+  .strip-in{display:flex;flex-wrap:wrap;gap:14px 38px;justify-content:center;padding:18px 0;font-size:14.5px;font-weight:600;color:var(--ink-2)}
+  .strip-in span{display:inline-flex;align-items:center;gap:8px}
+  .dotg{width:7px;height:7px;border-radius:50%;background:var(--green)}
+
+  section{padding:78px 0}
+
+  /* steps */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+  .step{position:relative;background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:28px 24px}
+  .step .ic{width:48px;height:48px;border-radius:13px;background:var(--mint);display:grid;place-items:center;font-size:24px;margin-bottom:16px}
+  .step .num{position:absolute;top:20px;right:22px;font-family:"Space Mono",monospace;font-weight:700;color:#cfe6d8;font-size:22px}
+  .step h3{margin-bottom:7px}
+  .step p{font-size:15px}
+  .step .ex{margin-top:10px;display:inline-block;background:var(--mint);color:var(--green-d);font-weight:700;border-radius:9px;padding:5px 11px;font-size:13.5px}
+
+  /* real order section */
+  .order-sec{background:var(--paper)}
+  .order-grid{display:grid;grid-template-columns:.92fr 1.08fr;gap:50px;align-items:center}
+  .order-grid ul{list-style:none;margin-top:18px;display:flex;flex-direction:column;gap:12px}
+  .order-grid li{display:flex;gap:11px;font-size:16px;color:var(--ink-2)}
+  .order-grid li svg{flex-shrink:0;margin-top:3px}
+
+  /* who cards */
+  .who-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  .who{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:24px;transition:transform .15s,box-shadow .15s}
+  .who:hover{transform:translateY(-3px);box-shadow:var(--shadow-sm)}
+  .who .ic{font-size:30px;margin-bottom:12px}
+  .who h3{margin-bottom:5px}
+  .who p{font-size:14.5px}
+
+  /* features grid */
+  .feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+  .feat{background:#fff;padding:26px 22px}
+  .feat .ic{width:42px;height:42px;border-radius:11px;background:var(--mint);display:grid;place-items:center;font-size:20px;margin-bottom:13px}
+  .feat h3{font-size:17px;margin-bottom:5px}
+  .feat p{font-size:14px}
+
+  /* dashboard showcase */
+  .show-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:6px}
+  .mock{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow-sm)}
+  .mock .bar{display:flex;align-items:center;gap:6px;padding:10px 14px;border-bottom:1px solid var(--line);background:#fafbfa}
+  .mock .bar i{width:10px;height:10px;border-radius:50%;background:#e2e7e3;display:inline-block}
+  .mock .bar .ttl{margin-left:8px;font-size:12.5px;font-weight:700;color:var(--mute)}
+  .mock .body{padding:16px}
+  .mrow{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+  .mrow:last-child{border-bottom:none}
+  .mrow .s{font-size:11px;font-weight:700;padding:2px 9px;border-radius:9px}
+  .s.new{background:#eaf6ff;color:#1f7aec}.s.pack{background:#fff4e0;color:#b8860b}.s.way{background:var(--mint);color:var(--green-d)}.s.done{background:#eef1ee;color:var(--mute)}
+  .bars{display:flex;align-items:flex-end;gap:10px;height:120px;padding-top:8px}
+  .bars .bcol{flex:1;background:linear-gradient(var(--green-bright),var(--green));border-radius:6px 6px 0 0;min-height:14px}
+  .mgrid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .stat{background:var(--paper);border-radius:11px;padding:14px}
+  .stat .n{font-size:22px;font-weight:800}
+  .stat .l{font-size:12px;color:var(--mute);font-weight:600}
+  .prod{display:flex;align-items:center;gap:11px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+  .prod:last-child{border-bottom:none}
+  .prod .thumb{width:34px;height:34px;border-radius:8px;background:var(--mint)}
+  .prod .pr{margin-left:auto;font-weight:700}
+  .trk{display:flex;flex-direction:column;gap:0}
+  .trk .stp{display:flex;gap:12px;align-items:flex-start}
+  .trk .stp .dot{width:14px;height:14px;border-radius:50%;background:var(--green);margin-top:3px;flex-shrink:0}
+  .trk .stp .dot.off{background:#d7ddd9}
+  .trk .stp .line{width:2px;flex:1;background:var(--mint-line);margin:2px 0 2px 6px}
+  .trk .stp .tx{font-size:13.5px;padding-bottom:14px}
+  .trk .stp .tx small{display:block;color:var(--mute);font-size:12px}
+
+  /* AI assistant */
+  .ai-sec{background:#0c1f17;color:#fff;border-radius:0}
+  .ai-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center}
+  .ai-grid h2{color:#fff}
+  .ai-grid .eyebrow{color:#7fe0a5}
+  .ai-grid p{color:#cfe6d8}
+  .ai-list{list-style:none;margin-top:22px;display:grid;gap:12px}
+  .ai-list li{display:flex;gap:11px;font-size:16px;color:#eafaf0}
+  .ai-list li svg{flex-shrink:0;margin-top:3px}
+  .ai-visual{background:#0f2a1e;border:1px solid #1c4030;border-radius:18px;padding:20px}
+  .ai-msg{background:#123528;border-radius:11px;padding:11px 13px;font-size:14px;margin-bottom:9px;color:#dff3e8}
+  .ai-msg.q{background:#fff;color:#0d1712;margin-left:auto;max-width:80%}
+  .ai-msg.a{max-width:88%}
+
+  /* trust */
+  .trust-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  .trust-item{display:flex;gap:12px;background:#fff;border:1px solid var(--line);border-radius:13px;padding:18px}
+  .trust-item .ck{width:26px;height:26px;border-radius:50%;background:var(--mint);display:grid;place-items:center;flex-shrink:0}
+  .trust-item b{display:block;font-weight:700;margin-bottom:2px}
+  .trust-item p{font-size:14px;margin:0}
+
+  /* testimonials */
+  .test-sec{background:var(--paper)}
+  .test-track{position:relative;max-width:760px;margin:0 auto;min-height:230px}
+  .test{position:absolute;inset:0;opacity:0;transform:translateY(10px);transition:opacity .4s,transform .4s;pointer-events:none;
+    background:#fff;border:1px solid var(--line);border-radius:18px;padding:34px 36px;box-shadow:var(--shadow-sm)}
+  .test.on{opacity:1;transform:none;pointer-events:auto;position:relative}
+  .test .stars{color:var(--amber);font-size:16px;letter-spacing:2px}
+  .test .quote{font-size:19px;line-height:1.5;margin:14px 0 20px;color:var(--ink);font-weight:500}
+  .test .who-l{display:flex;align-items:center;gap:12px}
+  .test .av{width:44px;height:44px;border-radius:50%;background:linear-gradient(150deg,var(--green-bright),var(--green-d));color:#fff;display:grid;place-items:center;font-weight:800}
+  .test .meta b{display:block}
+  .test .meta span{font-size:13.5px;color:var(--mute)}
+  .dots{display:flex;justify-content:center;gap:9px;margin-top:24px}
+  .dots button{width:9px;height:9px;border-radius:50%;border:none;background:#cdd8d1;cursor:pointer;padding:0}
+  .dots button.on{background:var(--green);width:24px;border-radius:5px}
+
+  /* pricing */
+  .plans{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;align-items:stretch}
+  .plan{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:30px 26px;display:flex;flex-direction:column}
+  .plan.hot{border-color:var(--green);box-shadow:var(--shadow);position:relative}
+  .plan .flag{position:absolute;top:-12px;left:26px;background:var(--green);color:#fff;font-family:"Space Mono",monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding:4px 11px;border-radius:7px}
+  .plan .pn{font-weight:800;font-size:21px}
+  .plan .pt{color:var(--mute);font-size:14px;margin:3px 0 16px;min-height:36px}
+  .price{font-family:"Space Mono",monospace;font-weight:700;font-size:30px;letter-spacing:-.02em}
+  .price small{display:block;font-family:"Hanken Grotesk",sans-serif;font-weight:600;font-size:13px;color:var(--green-d);margin-top:4px}
+  .price .perm{font-size:13px;color:var(--mute);font-weight:500}
+  .plist{list-style:none;margin:18px 0 22px;display:flex;flex-direction:column;gap:9px;flex:1}
+  .plist li{font-size:14.5px;display:flex;gap:9px;color:var(--ink-2)}
+  .plist li svg{flex-shrink:0;margin-top:3px}
+  .plan .btn{width:100%}
+  .cmp{margin-top:46px;overflow-x:auto}
+  table.cmp-t{width:100%;border-collapse:collapse;min-width:520px}
+  table.cmp-t th,table.cmp-t td{padding:13px 14px;border-bottom:1px solid var(--line);text-align:center;font-size:14.5px}
+  table.cmp-t th{font-weight:800}
+  table.cmp-t td:first-child,table.cmp-t th:first-child{text-align:left;color:var(--ink)}
+  table.cmp-t thead th{font-family:"Space Mono",monospace;font-size:13px;text-transform:uppercase;letter-spacing:.05em}
+  .yes{color:var(--green);font-weight:800}.no{color:#c9d2cc}
+
+  /* final cta */
+  .cta-band{background:linear-gradient(150deg,#0e8c45,var(--green-d));color:#fff;border-radius:26px;padding:56px 44px;text-align:center}
+  .cta-band h2{color:#fff;margin-bottom:14px}
+  .cta-band .clist{list-style:none;display:flex;flex-wrap:wrap;gap:10px 26px;justify-content:center;margin:0 auto 26px;max-width:640px}
+  .cta-band .clist li{color:#eafaf0;font-weight:600;display:flex;gap:8px;align-items:center}
+  .cta-band .btn-green{background:#fff;color:var(--green-d)}
+  .cta-band .btn-green:hover{background:#eafaf0}
+  .cta-band .btn-ghost{background:transparent;border-color:#ffffff66;color:#fff}
+  .cta-band .btn-ghost:hover{border-color:#fff;color:#fff}
+  .cta-band .note{margin-top:18px;color:#ffffffcc;font-size:14px}
+
+  /* footer */
+  footer.ft{border-top:1px solid var(--line);padding:54px 0 30px}
+  .ft-in{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:30px}
+  .ft-in p{font-size:14.5px;margin-top:12px;max-width:30ch}
+  .ft h4{font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:var(--mute);margin-bottom:14px;font-weight:700}
+  .ft a{display:block;color:var(--ink-2);font-size:15px;margin-bottom:9px;font-weight:500}
+  .ft a:hover{color:var(--green-d)}
+  .ft-bottom{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:38px;padding-top:22px;border-top:1px solid var(--line);font-size:13.5px;color:var(--mute)}
+
+  .sticky{display:none;position:fixed;left:0;right:0;bottom:0;z-index:45;padding:11px 16px;background:rgba(255,255,255,.95);backdrop-filter:blur(8px);border-top:1px solid var(--line)}
+  .sticky .btn{width:100%}
+
+  .reveal{opacity:0;transform:translateY(16px);transition:opacity .6s,transform .6s}
+  .reveal.in{opacity:1;transform:none}
+
+  @media (max-width:980px){
+    .hero-grid,.order-grid,.ai-grid{grid-template-columns:1fr;gap:40px}
+    .floatcard{display:none}
+    .steps,.feat-grid,.plans,.trust-grid,.who-grid{grid-template-columns:1fr 1fr}
+    .show-grid{grid-template-columns:1fr}
+    .ft-in{grid-template-columns:1fr 1fr}
+  }
+  @media (max-width:640px){
+    .nav-links{display:none;position:absolute;top:66px;left:0;right:0;background:#fff;border-bottom:1px solid var(--line);flex-direction:column;align-items:flex-start;gap:4px;padding:14px 24px 20px}
+    .nav-links.open{display:flex}
+    .nav-links .btn{width:100%;margin-top:6px}
+    .burger{display:block}
+    section{padding:56px 0}
+    .hero{padding:40px 0 30px}
+    .steps,.feat-grid,.plans,.trust-grid,.who-grid{grid-template-columns:1fr}
+    .cta-band{padding:40px 24px}
+    .ft-in{grid-template-columns:1fr}
+    .sticky{display:block}
+    body{padding-bottom:70px}
+  }
+  @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}.reveal,.bub{opacity:1;transform:none;transition:none}}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="nav">
+  <div class="wrap nav-in">
+    <a class="brand" href="#top"><span class="mark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M6.5 16.5A4 4 0 0 1 6 8.6a5 5 0 0 1 9.6-1.2A4.2 4.2 0 0 1 18 16.5H6.5Z" fill="#fff"/><path d="M9 13.1l2 2 4-4.1" stroke="#06602d" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Cloud<small>BSS</small></a>
+    <nav class="nav-links" id="navLinks">
+      <a class="lnk" href="#how">How it works</a>
+      <a class="lnk" href="#features">Features</a>
+      <a class="lnk" href="#pricing">Pricing</a>
+      <a class="lnk" href="#who">Who it's for</a>
+      <a class="nav-login" href="/app/login">Log in</a>
+      <a class="btn btn-green" href="https://wa.me/256700000000?text=Hi%20CloudBSS%2C%20I%20want%20to%20start%20my%20free%20trial" target="_blank" rel="noopener">Start free trial</a>
+    </nav>
+    <button class="burger" id="burger" aria-label="Menu">☰</button>
+  </div>
+</header>
+<a id="top"></a>
+
+<!-- 1. HERO -->
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow reveal">WhatsApp commerce · Uganda</span>
+      <h1 class="reveal">Turn your WhatsApp into an <em>online store</em></h1>
+      <p class="sub reveal">Take orders automatically. Track deliveries. Manage products. Serve customers 24/7.<br><b>No app required. Setup in minutes.</b></p>
+      <div class="hero-cta reveal">
+        <a class="btn btn-green" href="https://wa.me/256700000000?text=Hi%20CloudBSS%2C%20I%20want%20to%20start%20my%20free%20trial" target="_blank" rel="noopener">
+          <svg class="wa-ico" viewBox="0 0 24 24" fill="#fff"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.8 4.9-1.3A10 10 0 1 0 12 2Zm5.8 14.1c-.2.7-1.4 1.3-2 1.4-.5.1-1.2.1-1.9-.1-.4-.1-1-.3-1.8-.6-3.1-1.3-5-4.4-5.2-4.6-.1-.2-1.2-1.6-1.2-3 0-1.4.7-2.1 1-2.4.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.3 0 .5l-.4.6-.3.3c-.1.1-.3.3-.1.5.1.3.7 1.1 1.4 1.8 1 .9 1.7 1.1 2 1.2.2.1.4.1.5-.1l.7-.8c.2-.2.3-.2.6-.1l1.9.9c.3.1.4.2.5.3.1.2.1.7-.1 1.4Z"/></svg>
+          Start free trial
+        </a>
+        <a class="btn btn-ghost" href="#realorder"><span class="play">▶</span> Watch demo</a>
+      </div>
+      <p class="hero-note reveal">Free to start · works on your existing number · no card needed</p>
+    </div>
+
+    <div class="stage reveal">
+      <div class="floatcard fc-dash">
+        <div class="fc-title">🧾 Orders today</div>
+        <div class="fc-row"><span>#FS-0271 · Bukoto</span><span class="pill">New</span></div>
+        <div class="fc-row"><span>#FS-0270 · Ntinda</span><span class="pill">On the way</span></div>
+        <div class="fc-row"><b>Today's sales</b><b>UGX 412,000</b></div>
+      </div>
+      <div class="floatcard fc-track">
+        <div class="fc-title">🛵 Delivery</div>
+        <div class="fc-row"><span>Rider Musa</span><b>8 min away</b></div>
+        <div class="track-line"><span class="d"></span><span class="ln"></span><span class="d"></span><span class="ln"></span><span class="d off"></span></div>
+        <div class="fc-row" style="margin-top:6px;color:var(--mute);font-size:11px"><span>Packed</span><span>On the way</span><span>Delivered</span></div>
+      </div>
+      <div class="phone">
+        <div class="screen">
+          <div class="island"></div>
+          <div class="sbar"><span>18:03</span><span class="sig">
+            <svg width="16" height="11" viewBox="0 0 16 11" fill="#fff"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+            <svg width="22" height="11" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="19" height="10" rx="2.5" stroke="#fff" stroke-width="1.3" opacity=".7"/><rect x="3" y="3" width="13" height="6" rx="1" fill="#fff"/><rect x="21" y="4" width="1.6" height="4" rx="1" fill="#fff" opacity=".7"/></svg></span>
+          </div>
+          <div class="chat-top"><span class="bk">‹</span><span class="ava">FS</span><div><div class="nm">Family Shopper</div><div class="st">online</div></div>
+            <span class="icns"><svg width="17" height="17" viewBox="0 0 24 24" fill="#fff"><path d="M3 5.5C3 14 10 21 18.5 21a2 2 0 0 0 2-1.7l.4-2a1.5 1.5 0 0 0-.9-1.6l-3-1.2a1.5 1.5 0 0 0-1.7.4l-.8.9a12 12 0 0 1-5-5l.9-.8a1.5 1.5 0 0 0 .4-1.7l-1.2-3A1.5 1.5 0 0 0 7 2.6l-2 .4A2 2 0 0 0 3 5.5Z"/></svg></span>
+          </div>
+          <div class="chat-body" id="heroChat">
+            <div class="bub in" data-s="1">Hi, 2kg sugar and a loaf of bread please 🍞<span class="t">18:02</span></div>
+            <div class="bub out" data-s="2">Got it 👍 2kg sugar + 1 bread = <b>UGX 11,500</b>. Deliver to Bukoto?<span class="t">18:02 <span class="tick">✓✓</span></span></div>
+            <div class="bub in" data-s="3">Yes, pay on delivery<span class="t">18:03</span></div>
+            <div class="bub out" data-s="4">Order <b>#FS-0271</b> confirmed 🎉 A rider is on the way.<span class="t">18:03 <span class="tick">✓✓</span></span></div>
+          </div>
+          <div class="ibar"><span class="fld">Message</span><span class="snd"><svg width="15" height="15" viewBox="0 0 24 24" fill="#fff"><path d="M3 11 21 3l-8 18-2.5-7.5L3 11Z"/></svg></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STRIP -->
+<div class="strip"><div class="wrap strip-in">
+  <span><i class="dotg"></i> No app for your customers</span>
+  <span><i class="dotg"></i> Use your existing WhatsApp number</span>
+  <span><i class="dotg"></i> Open 24/7, even when you're closed</span>
+</div></div>
+
+<!-- 2. HOW IT WORKS -->
+<section id="how">
+  <div class="wrap">
+    <div class="sec-head center reveal"><span class="eyebrow">How it works</span><h2>From a chat to a delivery in three steps</h2><p>No new system to learn — your customers keep using WhatsApp, CloudBSS does the rest.</p></div>
+    <div class="steps">
+      <div class="step reveal"><span class="num">01</span><div class="ic">💬</div><h3>Customer sends a WhatsApp message</h3><p>They message your number like they always do.</p><span class="ex">"2kg Sugar"</span></div>
+      <div class="step reveal"><span class="num">02</span><div class="ic">🤖</div><h3>AI assistant builds the cart</h3><p>It finds the products, prices them and confirms the order in plain language.</p></div>
+      <div class="step reveal"><span class="num">03</span><div class="ic">🛵</div><h3>Order hits your dashboard</h3><p>It lands in one list and a delivery is assigned — with live tracking for the customer.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 3. SEE A REAL ORDER -->
+<section id="realorder" class="order-sec">
+  <div class="wrap order-grid">
+    <div class="reveal">
+      <span class="eyebrow">See a real order</span>
+      <h2 style="margin:12px 0 6px">This is what your customers experience</h2>
+      <p>A natural back-and-forth — no menus to memorise, no forms. The assistant understands what they want and closes the sale.</p>
+      <ul>
+        <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="#0a7d3c" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg> Understands everyday language &amp; typos</li>
+        <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="#0a7d3c" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg> Asks the right follow-up questions</li>
+        <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="#0a7d3c" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg> Adds to cart, totals up, confirms</li>
+      </ul>
+    </div>
+    <div class="stage reveal">
+      <div class="phone">
+        <div class="screen">
+          <div class="island"></div>
+          <div class="sbar"><span>13:20</span><span class="sig">
+            <svg width="16" height="11" viewBox="0 0 16 11" fill="#fff"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+            <svg width="22" height="11" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="19" height="10" rx="2.5" stroke="#fff" stroke-width="1.3" opacity=".7"/><rect x="3" y="3" width="13" height="6" rx="1" fill="#fff"/></svg></span>
+          </div>
+          <div class="chat-top"><span class="bk">‹</span><span class="ava">🛒</span><div><div class="nm">Your Shop</div><div class="st">online · replies in seconds</div></div></div>
+          <div class="chat-body" id="orderChat">
+            <div class="bub in"  data-s="1">2 Rice<span class="t">13:18</span></div>
+            <div class="bub out" data-s="2">Which rice would you like? 🌾<br>• Pakistan Rice 5kg<br>• Local Rice 1kg<span class="t">13:18 <span class="tick">✓✓</span></span></div>
+            <div class="bub in"  data-s="3">Pakistan Rice 5kg<span class="t">13:19</span></div>
+            <div class="bub out" data-s="4">Added to cart ✅<span class="t">13:19 <span class="tick">✓✓</span></span></div>
+            <div class="bub in"  data-s="5">Also 1 Cooking Oil<span class="t">13:19</span></div>
+            <div class="bub out" data-s="6">Added 👍<span class="t">13:19 <span class="tick">✓✓</span></span></div>
+            <div class="bub out" data-s="7">🧾 Order total: <b>UGX 45,000</b><span class="t">13:20 <span class="tick">✓✓</span></span></div>
+            <div class="bub in"  data-s="8">Checkout<span class="t">13:20</span></div>
+            <div class="bub out" data-s="9">Order confirmed 🎉 We're preparing it now.<span class="t">13:20 <span class="tick">✓✓</span></span></div>
+          </div>
+          <div class="ibar"><span class="fld">Message</span><span class="snd"><svg width="15" height="15" viewBox="0 0 24 24" fill="#fff"><path d="M3 11 21 3l-8 18-2.5-7.5L3 11Z"/></svg></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 4. WHO USES -->
+<section id="who">
+  <div class="wrap">
+    <div class="sec-head center reveal"><span class="eyebrow">Who uses CloudBSS</span><h2>Built for the way Uganda shops sell</h2></div>
+    <div class="who-grid">
+      <div class="who reveal"><div class="ic">🛒</div><h3>Supermarkets</h3><p>Take grocery orders and deliver across town.</p></div>
+      <div class="who reveal"><div class="ic">🍽️</div><h3>Restaurants</h3><p>Menu, orders and delivery — straight from chat.</p></div>
+      <div class="who reveal"><div class="ic">💊</div><h3>Pharmacies</h3><p>Refills and quick deliveries, handled politely.</p></div>
+      <div class="who reveal"><div class="ic">🔧</div><h3>Hardware stores</h3><p>Big catalogues, fast quotes, easy reorders.</p></div>
+      <div class="who reveal"><div class="ic">🥖</div><h3>Bakeries</h3><p>Daily orders and cake bookings on WhatsApp.</p></div>
+      <div class="who reveal"><div class="ic">👗</div><h3>Boutiques</h3><p>Share looks, take orders, arrange delivery.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 5. FEATURES -->
+<section id="features">
+  <div class="wrap">
+    <div class="sec-head center reveal"><span class="eyebrow">Platform features</span><h2>Everything to run the shop from your phone</h2></div>
+    <div class="feat-grid">
+      <div class="feat reveal"><div class="ic">💬</div><h3>WhatsApp ordering</h3><p>Customers order in chat — no app, no forms.</p></div>
+      <div class="feat reveal"><div class="ic">📦</div><h3>Product catalog</h3><p>Add products, prices and photos in minutes.</p></div>
+      <div class="feat reveal"><div class="ic">🤖</div><h3>AI sales assistant</h3><p>Answers, prices and takes orders day &amp; night.</p></div>
+      <div class="feat reveal"><div class="ic">🧾</div><h3>Order management</h3><p>One clean list: new, packed, on the way, done.</p></div>
+      <div class="feat reveal"><div class="ic">🛵</div><h3>Delivery tracking</h3><p>Assign riders; customers follow a live link.</p></div>
+      <div class="feat reveal"><div class="ic">👥</div><h3>Staff accounts</h3><p>Give your team their own logins and roles.</p></div>
+      <div class="feat reveal"><div class="ic">📊</div><h3>Analytics &amp; reports</h3><p>Best sellers, busy days, daily sales.</p></div>
+      <div class="feat reveal"><div class="ic">🏬</div><h3>Multi-branch</h3><p>Run several outlets from one account.</p></div>
+      <div class="feat reveal"><div class="ic">📋</div><h3>Inventory</h3><p>Track stock so you never oversell.</p></div>
+      <div class="feat reveal"><div class="ic">🗓️</div><h3>Scheduled deliveries</h3><p>Customers pick a time; you get prep &amp; dispatch reminders.</p></div>
+      <div class="feat reveal"><div class="ic">📣</div><h3>WhatsApp marketing</h3><p>Send promos with photos to the right customers.</p></div>
+      <div class="feat reveal"><div class="ic">✨</div><h3>Automated promotions</h3><p>AI suggests deals on slow movers and new arrivals.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 6. DASHBOARD SHOWCASE -->
+<section class="order-sec">
+  <div class="wrap">
+    <div class="sec-head center reveal"><span class="eyebrow">Your dashboard</span><h2>See exactly what you get</h2><p>A clean control room for your whole shop — on your phone or computer.</p></div>
+    <div class="show-grid">
+      <div class="mock reveal"><div class="bar"><i></i><i></i><i></i><span class="ttl">Orders</span></div><div class="body">
+        <div class="mrow"><span><b>#FS-0271</b> · Bukoto · UGX 11,500</span><span class="s new">New</span></div>
+        <div class="mrow"><span><b>#FS-0270</b> · Ntinda · UGX 45,000</span><span class="s pack">Packed</span></div>
+        <div class="mrow"><span><b>#FS-0269</b> · Kololo · UGX 32,000</span><span class="s way">On the way</span></div>
+        <div class="mrow"><span><b>#FS-0268</b> · Bugolobi · UGX 18,000</span><span class="s done">Delivered</span></div>
+      </div></div>
+      <div class="mock reveal"><div class="bar"><i></i><i></i><i></i><span class="ttl">Products</span></div><div class="body">
+        <div class="prod"><span class="thumb"></span><span>Pakistan Rice 5kg</span><span class="pr">UGX 38,000</span></div>
+        <div class="prod"><span class="thumb"></span><span>Sugar 2kg</span><span class="pr">UGX 8,500</span></div>
+        <div class="prod"><span class="thumb"></span><span>Cooking Oil 1L</span><span class="pr">UGX 7,000</span></div>
+        <div class="prod"><span class="thumb"></span><span>Bread (loaf)</span><span class="pr">UGX 3,000</span></div>
+      </div></div>
+      <div class="mock reveal"><div class="bar"><i></i><i></i><i></i><span class="ttl">Delivery tracking</span></div><div class="body"><div class="trk">
+        <div class="stp"><span class="dot"></span><span class="line"></span></div>
+        <div class="stp" style="margin-top:-14px"><span class="dot"></span><div class="tx"><b>Order confirmed</b><small>13:20 · #FS-0271</small></div></div>
+        <div class="stp" style="margin-top:-22px"><span class="dot"></span><div class="tx"><b>Packed &amp; ready</b><small>13:34</small></div></div>
+        <div class="stp" style="margin-top:-22px"><span class="dot"></span><div class="tx"><b>On the way — Rider Musa</b><small>13:41 · 8 min away</small></div></div>
+        <div class="stp" style="margin-top:-22px"><span class="dot off"></span><div class="tx" style="color:var(--mute)"><b>Delivered</b><small>pending</small></div></div>
+      </div></div></div>
+      <div class="mock reveal"><div class="bar"><i></i><i></i><i></i><span class="ttl">Reports</span></div><div class="body">
+        <div class="mgrid2" style="margin-bottom:14px"><div class="stat"><div class="n">UGX 412k</div><div class="l">Sales today</div></div><div class="stat"><div class="n">37</div><div class="l">Orders today</div></div></div>
+        <div class="bars"><div class="bcol" style="height:46%"></div><div class="bcol" style="height:62%"></div><div class="bcol" style="height:40%"></div><div class="bcol" style="height:80%"></div><div class="bcol" style="height:68%"></div><div class="bcol" style="height:96%"></div><div class="bcol" style="height:74%"></div></div>
+        <div class="mrow" style="border:none;color:var(--mute);font-size:12px;padding-top:6px"><span>Mon</span><span>Sun</span></div>
+      </div></div>
+      <div class="mock reveal"><div class="bar"><i></i><i></i><i></i><span class="ttl">Scheduled orders</span></div><div class="body">
+        <div class="mrow"><span><b>#FS-0282</b> · Today 4:00 PM · Ntinda</span><span class="s pack">Preparing</span></div>
+        <div class="mrow"><span><b>#FS-0285</b> · Today 6:30 PM · Kololo</span><span class="s new">Scheduled</span></div>
+        <div class="mrow"><span><b>#FS-0288</b> · Tomorrow 9:00 AM · Bukoto</span><span class="s new">Scheduled</span></div>
+        <div class="mrow" style="border:none;color:var(--mute);font-size:12px;padding-top:6px"><span>⏰ Reminders 2h &amp; 30m before</span></div>
+      </div></div>
+      <div class="mock reveal"><div class="bar"><i></i><i></i><i></i><span class="ttl">Campaign builder</span></div><div class="body">
+        <div class="prod"><span class="thumb" style="display:grid;place-items:center;font-size:15px">🎉</span><span>Weekend special</span><span class="pr">VIP</span></div>
+        <div class="mrow" style="font-size:12.5px;color:var(--mute);border:none"><span>“Fresh stock just in 🌾 Order today and we'll deliver. Reply BUY to order.”</span></div>
+        <div class="prod"><span class="thumb" style="display:grid;place-items:center;font-size:15px">🌾</span><span>Pakistan Rice 5kg</span><span class="pr">UGX 38,000</span></div>
+        <div class="mrow" style="border:none;color:var(--mute);font-size:12px;padding-top:6px"><span>≈ 214 customers</span><span>✨ AI-drafted</span></div>
+      </div></div>
+      <div class="mock reveal"><div class="bar"><i></i><i></i><i></i><span class="ttl">Campaign analytics</span></div><div class="body">
+        <div class="mgrid2" style="margin-bottom:14px"><div class="stat"><div class="n">214</div><div class="l">Targeted</div></div><div class="stat"><div class="n">209</div><div class="l">Sent</div></div></div>
+        <div class="mrow"><span>Weekend special</span><span class="s done">Sent</span></div>
+        <div class="mrow"><span>New arrivals — flour</span><span class="s way">Sending</span></div>
+        <div class="mrow"><span>Eid seasonal offer</span><span class="s new">Scheduled</span></div>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 7. AI ASSISTANT -->
+<section class="ai-sec">
+  <div class="wrap ai-grid">
+    <div class="reveal">
+      <span class="eyebrow">AI sales assistant</span>
+      <h2 style="margin:12px 0 14px">Your sales assistant never sleeps</h2>
+      <p>It greets every customer, answers questions and takes orders around the clock — and hands over to your staff the moment a human is needed.</p>
+      <ul class="ai-list">
+        <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="#16b85e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg> Answers customer questions</li>
+        <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="#16b85e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg> Shows product prices instantly</li>
+        <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="#16b85e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg> Creates and confirms orders</li>
+        <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="#16b85e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg> Tracks orders for customers</li>
+        <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="#16b85e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg> Serves many customers at once</li>
+        <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="#16b85e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg> Escalates to staff when needed</li>
+      </ul>
+    </div>
+    <div class="ai-visual reveal">
+      <div class="ai-msg q">Do you have paracetamol?</div>
+      <div class="ai-msg a">Yes 💊 Paracetamol 500mg — UGX 2,000 for a card of 10. How many would you like?</div>
+      <div class="ai-msg q">2 cards, deliver to Najjera</div>
+      <div class="ai-msg a">Added 2 cards = UGX 4,000. Delivery to Najjera is UGX 3,000. Confirm order of <b>UGX 7,000</b>?</div>
+      <div class="ai-msg a" style="background:#0a7d3c">🙋 Handing you to our pharmacist for dosage advice…</div>
+    </div>
+  </div>
+</section>
+
+<!-- 8. TRUST -->
+<section>
+  <div class="wrap">
+    <div class="sec-head center reveal"><span class="eyebrow">Trust</span><h2>Why businesses trust CloudBSS</h2></div>
+    <div class="trust-grid">
+      <div class="trust-item reveal"><span class="ck">✓</span><div><b>Your existing number</b><p>Keep the WhatsApp number your customers already know.</p></div></div>
+      <div class="trust-item reveal"><span class="ck">✓</span><div><b>Secure cloud backups</b><p>Your orders and data are backed up automatically.</p></div></div>
+      <div class="trust-item reveal"><span class="ck">✓</span><div><b>No tech knowledge needed</b><p>If you can use WhatsApp, you can run your store.</p></div></div>
+      <div class="trust-item reveal"><span class="ck">✓</span><div><b>Easy onboarding</b><p>We help you set up and train your staff.</p></div></div>
+      <div class="trust-item reveal"><span class="ck">✓</span><div><b>Your data stays yours</b><p>Export it any time. We never sell it.</p></div></div>
+      <div class="trust-item reveal"><span class="ck">✓</span><div><b>Cancel anytime</b><p>No lock-in contracts. Stop whenever you like.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 9. EARLY ACCESS (honest, pre-testimonials) -->
+<section class="test-sec">
+  <div class="wrap">
+    <div class="sec-head center reveal"><span class="eyebrow">Early access</span><h2>Be one of our first businesses</h2></div>
+    <div class="test-track">
+      <div class="test on" style="text-align:center">
+        <p class="quote">We're a young Ugandan team just opening CloudBSS to local businesses. Early customers get our full attention — personal setup, a direct line to us, and a real say in what we build next. No inflated promises, just a tool that earns its place in your shop.</p>
+        <div style="display:flex;justify-content:center;margin-top:6px">
+          <a class="btn btn-green" href="https://wa.me/256700000000?text=Hi%20CloudBSS%2C%20I%20want%20to%20start%20my%20free%20trial" target="_blank" rel="noopener">Start free trial</a>
+        </div>
+        <p style="margin-top:16px;color:var(--mute);font-size:14px">— The CloudBSS team, Kampala 🇺🇬</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 10. PRICING -->
+<section id="pricing">
+  <div class="wrap">
+    <div class="sec-head center reveal"><span class="eyebrow">Pricing</span><h2>Start free. Pay when it's earning.</h2><p>Try it with real orders before you pay a shilling. Upgrade only when you're ready.</p></div>
+    <div class="plans">
+      <div class="plan reveal">
+        <div class="pn">Free</div><div class="pt">See it work with real customers</div>
+        <div class="price">UGX 0<small>30 orders / month</small></div>
+        <ul class="plist">
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="#0a7d3c" stroke-width="2.4" stroke-linecap="round"/></svg> WhatsApp ordering</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="#0a7d3c" stroke-width="2.4" stroke-linecap="round"/></svg> Order list</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="#0a7d3c" stroke-width="2.4" stroke-linecap="round"/></svg> AI assistant</li>
+        </ul>
+        <a class="btn btn-ghost" href="https://wa.me/256700000000?text=Hi%20CloudBSS%2C%20start%20me%20on%20Free" target="_blank" rel="noopener">Start free</a>
+      </div>
+      <div class="plan hot reveal">
+        <span class="flag">Most popular</span>
+        <div class="pn">Starter</div><div class="pt">For a shop taking orders daily</div>
+        <div class="price">UGX 75,000 <span class="perm">/mo</span><small>≈ UGX 2,500 / day · about $20</small></div>
+        <ul class="plist">
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="#0a7d3c" stroke-width="2.4" stroke-linecap="round"/></svg> <b>Unlimited</b> orders</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="#0a7d3c" stroke-width="2.4" stroke-linecap="round"/></svg> AI assistant, day &amp; night</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="#0a7d3c" stroke-width="2.4" stroke-linecap="round"/></svg> Order list + confirmations</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="#0a7d3c" stroke-width="2.4" stroke-linecap="round"/></svg> 1 staff login</li>
+        </ul>
+        <a class="btn btn-green" href="https://wa.me/256700000000?text=Hi%20CloudBSS%2C%20I%20want%20Starter" target="_blank" rel="noopener">Choose Starter</a>
+      </div>
+      <div class="plan reveal">
+        <div class="pn">Pro</div><div class="pt">For a busy shop that delivers</div>
+        <div class="price">UGX 185,000 <span class="perm">/mo</span><small>≈ UGX 6,200 / day · about $50</small></div>
+        <ul class="plist">
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="#0a7d3c" stroke-width="2.4" stroke-linecap="round"/></svg> Everything in Starter</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="#0a7d3c" stroke-width="2.4" stroke-linecap="round"/></svg> <b>Riders + live tracking</b></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="#0a7d3c" stroke-width="2.4" stroke-linecap="round"/></svg> <b>POS, reports, multi-branch</b></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="#0a7d3c" stroke-width="2.4" stroke-linecap="round"/></svg> Many staff + official WhatsApp API</li>
+        </ul>
+        <a class="btn btn-ghost" href="https://wa.me/256700000000?text=Hi%20CloudBSS%2C%20I%20want%20Pro" target="_blank" rel="noopener">Choose Pro</a>
+      </div>
+    </div>
+
+    <div class="cmp reveal">
+      <table class="cmp-t">
+        <thead><tr><th>Feature</th><th>Free</th><th>Starter</th><th>Pro</th></tr></thead>
+        <tbody>
+          <tr><td>WhatsApp ordering &amp; AI assistant</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><td>Orders per month</td><td>30</td><td>Unlimited</td><td>Unlimited</td></tr>
+          <tr><td>Product catalog &amp; inventory</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><td>Order confirmations</td><td class="no">—</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><td>Riders &amp; live delivery tracking</td><td class="no">—</td><td class="no">—</td><td class="yes">✓</td></tr>
+          <tr><td>Counter sales (POS)</td><td class="no">—</td><td class="no">—</td><td class="yes">✓</td></tr>
+          <tr><td>Reports &amp; multi-branch</td><td class="no">—</td><td class="no">—</td><td class="yes">✓</td></tr>
+          <tr><td>Staff logins</td><td>1</td><td>1</td><td>Many</td></tr>
+          <tr><td>Official WhatsApp API option</td><td class="no">—</td><td class="no">—</td><td class="yes">✓</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- 11. FINAL CTA -->
+<section>
+  <div class="wrap">
+    <div class="cta-band reveal">
+      <span class="eyebrow" style="color:#bff3d1">Ready when you are</span>
+      <h2>Start selling on WhatsApp today</h2>
+      <ul class="clist">
+        <li>✓ We connect your WhatsApp</li>
+        <li>✓ We upload your products</li>
+        <li>✓ We configure your store</li>
+        <li>✓ We train your staff</li>
+      </ul>
+      <div style="display:flex;gap:13px;justify-content:center;flex-wrap:wrap">
+        <a class="btn btn-green" href="https://wa.me/256700000000?text=Hi%20CloudBSS%2C%20I%20want%20to%20start%20my%20free%20trial" target="_blank" rel="noopener">Start free trial</a>
+        <a class="btn btn-ghost" href="https://wa.me/256700000000?text=Hi%20CloudBSS%2C%20I%20want%20to%20talk%20to%20sales" target="_blank" rel="noopener">Talk to sales</a>
+      </div>
+      <div class="note">Setup takes about 30 minutes. No card needed to start.</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="ft">
+  <div class="wrap">
+    <div class="ft-in">
+      <div>
+        <a class="brand" href="#top"><span class="mark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M6.5 16.5A4 4 0 0 1 6 8.6a5 5 0 0 1 9.6-1.2A4.2 4.2 0 0 1 18 16.5H6.5Z" fill="#fff"/><path d="M9 13.1l2 2 4-4.1" stroke="#06602d" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Cloud<small>BSS</small></a>
+        <p>The simple way for Uganda businesses to sell, deliver and grow on WhatsApp.</p>
+      </div>
+      <div><h4>Product</h4><a href="#how">How it works</a><a href="#features">Features</a><a href="#pricing">Pricing</a><a href="#who">Who it's for</a></div>
+      <div><h4>Talk to us</h4><a href="https://wa.me/256700000000?text=Hi%20CloudBSS" target="_blank" rel="noopener">WhatsApp us</a><a href="tel:+256700000000">Call us</a><a href="mailto:hello@mycloudbss.com">hello@mycloudbss.com</a></div>
+      <div><h4>Account</h4><a href="/app/login">Shop owner login</a><a href="/admin/login">Operator login</a></div>
+    </div>
+    <div class="ft-bottom"><span>© <span id="yr"></span> CloudBSS · mycloudbss.com</span><span>Turn your WhatsApp into an online store.</span></div>
+  </div>
+</footer>
+
+<div class="sticky"><a class="btn btn-green" href="https://wa.me/256700000000?text=Hi%20CloudBSS%2C%20I%20want%20to%20start%20my%20free%20trial" target="_blank" rel="noopener">Start free trial</a></div>
+
+<script>
+  document.getElementById('yr').textContent=new Date().getFullYear();
+  var burger=document.getElementById('burger'),links=document.getElementById('navLinks');
+  burger.addEventListener('click',function(){links.classList.toggle('open');});
+  links.addEventListener('click',function(e){if(e.target.tagName==='A')links.classList.remove('open');});
+
+  var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // scroll reveal
+  if('IntersectionObserver' in window && !reduce){
+    var io=new IntersectionObserver(function(en){en.forEach(function(x){if(x.isIntersecting){x.target.classList.add('in');io.unobserve(x.target);}});},{threshold:.12});
+    document.querySelectorAll('.reveal').forEach(function(el){io.observe(el);});
+  }else{document.querySelectorAll('.reveal').forEach(function(el){el.classList.add('in');});}
+
+  // chat reveal (per chat container, replays when it scrolls into view)
+  function playChat(id){
+    var b=Array.prototype.slice.call(document.querySelectorAll('#'+id+' .bub'));
+    if(reduce){b.forEach(function(x){x.classList.add('show');});return;}
+    b.forEach(function(x){x.classList.remove('show');});
+    b.forEach(function(x,i){setTimeout(function(){x.classList.add('show');},400+i*750);});
+  }
+  ['heroChat','orderChat'].forEach(function(id){
+    var el=document.getElementById(id);if(!el)return;
+    if('IntersectionObserver' in window && !reduce){
+      var seen=false;
+      new IntersectionObserver(function(en){en.forEach(function(x){
+        if(x.isIntersecting){playChat(id);if(id==='heroChat'&&!seen){seen=true;setInterval(function(){playChat(id);},400+document.querySelectorAll('#'+id+' .bub').length*750+4500);}}
+      });},{threshold:.3}).observe(el);
+    }else{playChat(id);}
+  });
+
+  // testimonials carousel
+  var tests=document.querySelectorAll('#testTrack .test'),dotsWrap=document.getElementById('testDots'),ti=0;
+  tests.forEach(function(_,i){var b=document.createElement('button');if(i===0)b.className='on';b.onclick=function(){go(i);};dotsWrap.appendChild(b);});
+  function go(i){tests[ti].classList.remove('on');dotsWrap.children[ti].classList.remove('on');ti=i;tests[ti].classList.add('on');dotsWrap.children[ti].classList.add('on');}
+  if(tests.length>1 && !reduce)setInterval(function(){go((ti+1)%tests.length);},5000);
+</script>
+</body>
+</html>
