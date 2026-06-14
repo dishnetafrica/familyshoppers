@@ -77,6 +77,16 @@ class SalesAssistantBrain
     {
         [$term, $candidates] = $this->subject($text, $catalogue, $st);
 
+        // Structured discovery context ("family of 5", "not expensive", "daily use") — used to
+        // bias the pick (budget/size) and to shape the wording. Built from the discovery part
+        // of the message; harmless (all-null) when the customer gave no extra context.
+        $ctx = DiscoveryContextBuilder::build(self::discoverySegment($text), $catalogue);
+
+        // a bigger household nudges toward a larger pack, when sizes are present
+        if (($ctx['family_size'] ?? 0) >= 4 && $candidates) {
+            $candidates = $this->preferLargerPacks($candidates);
+        }
+
         // owner's default for the term (independent of the search candidates)
         $defaultProduct = null;
         if ($term !== '') {
@@ -102,7 +112,7 @@ class SalesAssistantBrain
         }
 
         $sellerQty = $this->bestSellerQty($tenant, $this->idsOf($candidates, $defaultProduct));
-        $pick      = self::pickRecommendation($term, $candidates, $defaultProduct, $sellerQty);
+        $pick      = self::pickRecommendation($term, $candidates, $defaultProduct, $sellerQty, $ctx);
         $product   = $pick['product'];
         if (! $product) {
             return "Sure \u{1F642} Which product would you like me to recommend?";
@@ -126,20 +136,27 @@ class SalesAssistantBrain
         foreach ($sellerQty as $id => $q) { if ($q > $topQty) { $topQty = $q; $topId = (int) $id; } }
         $isTopSeller = $pid > 0 && $pid === $topId && $topQty > 0;
 
+        // recommendation clause (without a leading "For ..." — the context phrase supplies that)
         switch ($pick['tag']) {
             case 'popular':
-                $lead = "For {$label}, most customers choose *{$product['name']}* ({$price}) — it's our most popular.";
+                $clause = "most customers choose *{$product['name']}* ({$price}) — it's our most popular.";
+                break;
+            case 'premium':
+                $clause = "*{$product['name']}* ({$price}) is our top-of-the-range choice.";
                 break;
             case 'pick':
-                $lead = "For {$label} I'd recommend *{$product['name']}* ({$price})"
-                      . ($isTopSeller ? " — and it's what most customers buy." : ".");
+                $clause = "I'd recommend *{$product['name']}* ({$price})"
+                        . ($isTopSeller ? " — and it's what most customers buy." : ".");
                 break;
             case 'value':
-                $lead = "For {$label}, *{$product['name']}* ({$price}) is the best value for money.";
+                $clause = "*{$product['name']}* ({$price}) is the best value for money.";
                 break;
             default:
-                $lead = "For {$label} I'd go with *{$product['name']}* ({$price}).";
+                $clause = "I'd go with *{$product['name']}* ({$price}).";
         }
+
+        $phrase = DiscoveryContextBuilder::phrase($ctx);
+        $lead   = $phrase !== '' ? ($phrase . $clause) : ("For {$label}, " . $clause);
 
         $msg  = $lead . "\n";
         $msg .= "Reply *1* to add it to your basket";
@@ -155,6 +172,20 @@ class SalesAssistantBrain
         ]);
 
         return $msg;
+    }
+
+    /** Keep candidates within ~60% of the largest pack size (soft nudge for big households). */
+    private function preferLargerPacks(array $candidates): array
+    {
+        $max = 0.0;
+        foreach ($candidates as $p) { $max = max($max, self::sizeValue((string) ($p['name'] ?? ''))); }
+        if ($max <= 0) return $candidates;   // no parseable sizes — leave as-is
+        $kept = [];
+        foreach ($candidates as $p) {
+            $v = self::sizeValue((string) ($p['name'] ?? ''));
+            if ($v <= 0 || $v >= $max * 0.6) $kept[] = $p;   // keep unknowns + the larger packs
+        }
+        return $kept ?: $candidates;
     }
 
     private function handleCompare(Tenant $tenant, Conversation $convo, string $text, array $catalogue, array $byId, array $st, string $currency): ?string
@@ -318,8 +349,21 @@ class SalesAssistantBrain
      * Priority: owner's default -> best-seller among candidates -> best value -> first match.
      * @return array{product: ?array, basis: string}
      */
-    public static function pickRecommendation(string $term, array $candidates, ?array $defaultProduct, array $sellerQtyById): array
+    public static function pickRecommendation(string $term, array $candidates, ?array $defaultProduct, array $sellerQtyById, array $context = []): array
     {
+        $budget = $context['budget'] ?? null;
+
+        // An explicit budget is the customer's own constraint — honour it over the generic
+        // default. "Not expensive" -> the most affordable; "premium" -> the top of the range.
+        if ($budget === 'low') {
+            $v = self::cheapestInStock($candidates);
+            if ($v) return ['product' => $v, 'tag' => 'value', 'basis' => 'the most affordable option'];
+        }
+        if ($budget === 'high') {
+            $p = self::dearestInStock($candidates);
+            if ($p) return ['product' => $p, 'tag' => 'premium', 'basis' => 'our top-of-the-range choice'];
+        }
+
         if ($defaultProduct !== null) {
             return ['product' => $defaultProduct, 'tag' => 'pick', 'basis' => 'the one we recommend here'];
         }
@@ -336,11 +380,7 @@ class SalesAssistantBrain
         }
 
         // best value: cheapest in-stock candidate
-        $value = null;
-        foreach ($candidates as $p) {
-            if (($p['stock'] ?? 1) <= 0) continue;
-            if ($value === null || (float) $p['price'] < (float) $value['price']) $value = $p;
-        }
+        $value = self::cheapestInStock($candidates);
         if ($value !== null) {
             return ['product' => $value, 'tag' => 'value', 'basis' => 'great value for the price'];
         }
@@ -349,6 +389,43 @@ class SalesAssistantBrain
             return ['product' => $candidates[0], 'tag' => 'first', 'basis' => 'a good choice'];
         }
         return ['product' => null, 'tag' => 'none', 'basis' => ''];
+    }
+
+    private static function cheapestInStock(array $candidates): ?array
+    {
+        $v = null;
+        foreach ($candidates as $p) {
+            if (($p['stock'] ?? 1) <= 0) continue;
+            if ($v === null || (float) $p['price'] < (float) $v['price']) $v = $p;
+        }
+        return $v;
+    }
+
+    private static function dearestInStock(array $candidates): ?array
+    {
+        $v = null;
+        foreach ($candidates as $p) {
+            if (($p['stock'] ?? 1) <= 0) continue;
+            if ($v === null || (float) $p['price'] > (float) $v['price']) $v = $p;
+        }
+        return $v;
+    }
+
+    /** Coarse pack size in a comparable unit (g / ml) for a soft "bigger pack" nudge. 0 = unknown. */
+    public static function sizeValue(string $name): float
+    {
+        if (! preg_match('/(\d+(?:\.\d+)?)\s*(kg|gm|g|ml|cl|ltr|litre|liter|l)\b/i', mb_strtolower($name), $m)) {
+            return 0.0;
+        }
+        $n = (float) $m[1];
+        return match ($m[2]) {
+            'kg'                                  => $n * 1000,
+            'g', 'gm'                             => $n,
+            'l', 'ltr', 'litre', 'liter'          => $n * 1000,
+            'cl'                                  => $n * 10,
+            'ml'                                  => $n,
+            default                               => $n,
+        };
     }
 
     /** Split "X vs Y", "compare X and Y", "difference between X and Y", "X or Y". Pure. */

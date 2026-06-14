@@ -8,7 +8,7 @@
  *  F3  fresh order picks stale rows : a quantity in a NEW order must not be read as a row pick
  *  F4  conflicted multi-line        : add+remove/correction in one message is flagged, not guessed
  */
-foreach (['CatalogueMatcher','CategoryDictionary','GreetingDictionary','LocationDictionary','FaqDictionary','IntentClassifier','ClarificationFlow','MultiLineGuard','ConversationStageAnalyzer','SalesAssistantBrain'] as $c) {
+foreach (['CatalogueMatcher','CategoryDictionary','GreetingDictionary','LocationDictionary','FaqDictionary','IntentClassifier','ClarificationFlow','MultiLineGuard','ConversationStageAnalyzer','SalesAssistantBrain','DiscoveryContextBuilder'] as $c) {
     require dirname(__DIR__).'/app/Services/Bot/'.$c.'.php';
 }
 use App\Services\Bot\IntentClassifier as IC;
@@ -95,6 +95,32 @@ ok('plain order "2 rice and 1 oil" is NOT multi-stage', ! STG::isMultiStage('2 r
 ok('all-selection "add 2 milk / add 1 bread" is NOT multi-stage', ! STG::isMultiStage("add 2 milk\nadd 1 bread"));
 ok('single "checkout" unchanged',             STG::leadSegment('checkout') === 'checkout');
 ok('single "which oil is good?" unchanged',   STG::leadSegment('which oil is good?') === 'which oil is good?');
+
+sec('F7 — DiscoveryContextBuilder extracts structured meaning, not a blob');
+use App\Services\Bot\DiscoveryContextBuilder as DCB;
+$ricecat = [
+  ['id'=>1,'name'=>'Maharashtra Kolam Rice 5kg','price'=>30000,'stock'=>20,'category'=>'Rice','keywords'=>''],
+  ['id'=>2,'name'=>'Ravi Rice 5kg','price'=>25000,'stock'=>20,'category'=>'Rice','keywords'=>''],
+  ['id'=>3,'name'=>'Sona Rice 1kg','price'=>8000,'stock'=>20,'category'=>'Rice','keywords'=>''],
+];
+$dseg = SA::discoverySegment("Need rice\nNot basmati\nDaily use\nFamily of 5\nNot expensive");
+$dctx = DCB::build($dseg, $ricecat);
+ok('product = rice',                 $dctx['product'] === 'rice');
+ok('exclude contains basmati',       in_array('basmati', $dctx['exclude'], true));
+ok('usage = daily',                  $dctx['usage'] === 'daily');
+ok('family_size = 5',                $dctx['family_size'] === 5);
+ok('budget = low',                   $dctx['budget'] === 'low');
+ok('budget "premium" -> high',       DCB::budget('premium quality please') === 'high');
+ok('budget plain -> null',           DCB::budget('rice please') === null);
+ok('family "4 people" -> 4',         DCB::familySize('rice for 4 people') === 4);
+ok('usage "biryani" -> special',     DCB::usage('rice for biryani') === 'special');
+ok('phrase mentions family + affordable + product',
+        str_contains(DCB::phrase($dctx), 'family of 5')
+        && str_contains(DCB::phrase($dctx), 'affordable')
+        && str_contains(DCB::phrase($dctx), 'rice'));
+ok('budget=low picks cheapest',      SA::pickRecommendation('rice',$ricecat,null,[],['budget'=>'low'])['product']['id'] === 3);
+ok('budget=high picks dearest',      SA::pickRecommendation('rice',$ricecat,null,[],['budget'=>'high'])['product']['id'] === 1);
+ok('sizeValue 5kg > 1kg',            SA::sizeValue('Ravi Rice 5kg') > SA::sizeValue('Sona Rice 1kg'));
 
 echo "\n========= RESULT =========\n";
 echo "PASS $PASS  FAIL $FAIL\n";
