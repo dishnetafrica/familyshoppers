@@ -151,6 +151,23 @@ class BotBrain
             return $reentry;
         }
 
+        // ---- Conversation stage decomposition ----
+        // A single message that spans several shopping stages ("Need rice / which is good? /
+        // add 2 / checkout") is handled ONE stage at a time, like a shop attendant: keep only
+        // the earliest stage and let the rest arrive as the customer's next messages. Skipped
+        // when a clarification / read-back / location step is already in progress, because then
+        // the message is a REPLY to that step, not a fresh multi-stage journey.
+        $stStage   = is_array($convo->state) ? $convo->state : [];
+        $inProgress = ! empty($stStage['options']) || ! empty($stStage['pending_order'])
+            || ! empty($stStage['pending_resolved']) || (($stStage['step'] ?? null) === 'awaiting_location');
+        if (! $inProgress && \App\Services\Bot\ConversationStageAnalyzer::isMultiStage($text)) {
+            $lead = \App\Services\Bot\ConversationStageAnalyzer::leadSegment($text);
+            if ($lead !== '' && $lead !== $text) {
+                $text = $lead;
+                $lc   = mb_strtolower(trim($text));
+            }
+        }
+
         // ---- Pending order confirmation (read-back) ----
         // A wholesale list / best-guess was read back and is awaiting *OK*. This must run
         // BEFORE the command words below, because "confirm"/"ok" would otherwise be eaten by
@@ -170,6 +187,15 @@ class BotBrain
             // message is handled as a fresh request (new product, edit, greeting, etc.).
             $convo->state = $res['state'];
             $convo->save();
+        }
+
+        // ---- Conflicted multi-line message guard ----
+        // One message packing add + remove/correction ("Add it / actually remove it / add X
+        // instead") cannot be resolved safely line-by-line by a deterministic bot — doing so
+        // silently removes the wrong product. Ask for one action at a time instead. A plain
+        // multi-item ORDER is not conflicted and passes through to the wholesale read-back.
+        if (\App\Services\Bot\MultiLineGuard::isConflicted($text)) {
+            return \App\Services\Bot\MultiLineGuard::prompt();
         }
 
         // ---- Cart management (remove / clear / change quantity, by number or name) ----
@@ -221,8 +247,19 @@ class BotBrain
                 return $ov;
             }
 
-            // Genuinely ambiguous (no recognised intent): keep options and re-prompt.
-            return "Please reply with the *number* you want from the list above (e.g. *1*, or *1 2 3*) — or type a product name to search again.";
+            // A fresh PRODUCT ORDER arriving mid-clarification must not be matched against the
+            // stale list, nor nagged for a number. Abandon the old options and reprocess it as a
+            // new message — this is the core fix for state contamination across turns.
+            if ($this->isFreshProductRequest($text, $catalogue)) {
+                $st = is_array($convo->state) ? $convo->state : [];
+                unset($st['options'], $st['pending_resolved'], $st['pending_order'], $st['last_recommended']);
+                $convo->state = $st;
+                $convo->save();
+                // fall through to normal processing below (no return)
+            } else {
+                // Genuinely ambiguous (no recognised intent): keep options and re-prompt.
+                return "Please reply with the *number* you want from the list above (e.g. *1*, or *1 2 3*) — or type a product name to search again.";
+            }
         }
 
         // command words win before shopping parsing
@@ -661,6 +698,21 @@ class BotBrain
     }
 
     /** Build a fresh engine (request-scoped token cache) and handle one message. */
+    /**
+     * Is this message a brand-new order (rather than a reply to a pending clarification)?
+     * A multi-line list, or anything the classifier reads as a strong shopping signal, means
+     * the customer has moved on — old options/pending state must be abandoned, not applied.
+     */
+    protected function isFreshProductRequest(string $text, array $catalogue): bool
+    {
+        if (preg_match('/\S[\r\n]+\S/', trim($text))) return true; // multi-line order
+        $intent = \App\Services\Bot\IntentClassifier::classify(
+            $text,
+            \App\Services\Bot\IntentClassifier::tokenSetFromProducts($catalogue)
+        );
+        return $intent === \App\Services\Bot\IntentClassifier::SHOPPING;
+    }
+
     /**
      * The human-shopkeeper conversational layer (recommend / reaffirm / compare).
      * Persists its own state when it handles the message; returns null to fall through.

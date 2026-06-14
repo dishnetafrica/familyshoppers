@@ -378,6 +378,124 @@ class SalesAssistantBrain
         return $out;
     }
 
+    /**
+     * Keep only candidates that belong to the same product category as the term's strongest
+     * matches — so a request for "rice" never recommends "D.rice Samosa" (a snack whose name
+     * merely contains the token "rice"). Pure.
+     *
+     * @param array $hits matcher->search() output: [['product'=>...,'score'=>...], ...]
+     * @return array list of product rows, coherent with the term
+     */
+    public static function coherentCandidates(string $term, array $hits): array
+    {
+        if (! $hits) return [];
+        $m = new CatalogueMatcher();
+        $tt = $m->tokens($term);
+        if (! $tt) return array_map(fn ($h) => $h['product'], $hits);
+        $head = $tt[0];
+
+        // 1) the head term must appear in the product NAME (drops keyword/category-only
+        //    and fuzzy noise — a yoghurt that merely lists "milk" is not a milk).
+        $named = [];
+        foreach ($hits as $h) {
+            if (in_array($head, $m->tokens((string) ($h['product']['name'] ?? '')), true)) {
+                $named[] = $h;
+            }
+        }
+        if (! $named) $named = $hits;
+
+        // 2) dominant category by score mass; when one category clearly leads, keep only it.
+        $catScore = []; $total = 0.0;
+        foreach ($named as $h) {
+            $c = mb_strtolower(trim((string) ($h['product']['category'] ?? '')));
+            if ($c === '') continue;
+            $catScore[$c] = ($catScore[$c] ?? 0) + (float) $h['score'];
+            $total += (float) $h['score'];
+        }
+        if ($catScore && $total > 0) {
+            arsort($catScore);
+            $domCat  = (string) array_key_first($catScore);
+            $domConf = $catScore[$domCat] / $total;
+            if ($domConf >= 0.5) {
+                $kept = [];
+                foreach ($named as $h) {
+                    if (mb_strtolower(trim((string) ($h['product']['category'] ?? ''))) === $domCat) {
+                        $kept[] = $h;
+                    }
+                }
+                if ($kept) $named = $kept;
+            }
+        }
+
+        return array_map(fn ($h) => $h['product'], $named);
+    }
+
+    /**
+     * The DISCOVERY portion of a compound message: everything up to the first downstream
+     * command (add / checkout / deliver / location / pay). So a message that runs a whole
+     * conversation together — "Need rice ... family of 5 ... ok add 2 ... checkout" — yields
+     * just "Need rice ... family of 5", and the recommendation is built on that, not the lot.
+     * Pure.
+     */
+    public static function discoverySegment(string $text): string
+    {
+        $t = ' ' . mb_strtolower(preg_replace('/[\r\n]+/', ' ', $text)) . ' ';
+        $cut = mb_strlen($t);
+        foreach (['\badd\b', '\bcheck ?out\b', '\bdeliver\w*\b', '\blocation\b', '\bpin\b',
+                  '\bconfirm\b', '\bpay\b', '\bplace order\b'] as $cmd) {
+            if (preg_match('/' . $cmd . '/', $t, $m, PREG_OFFSET_CAPTURE)) {
+                $cut = min($cut, $m[0][1]);
+            }
+        }
+        $seg = trim(mb_substr($t, 0, $cut));
+        return $seg !== '' ? $seg : trim(mb_strtolower(preg_replace('/[\r\n]+/', ' ', $text)));
+    }
+
+    /**
+     * The head PRODUCT noun of a discovery segment — the catalogue token that appears in the
+     * most product NAMES (the generic head like "rice"/"oil"), not a brand/qualifier that
+     * merely collides ("family" in "Family Rice Flour"). Negated terms ("not basmati") are
+     * excluded. Returns '' when no product noun is present. Pure (given the catalogue).
+     */
+    /** Terms the customer ruled out in a discovery message ("not basmati", "no brown"). Pure. */
+    public static function excludedTerms(string $segment): array
+    {
+        $m = new CatalogueMatcher();
+        $out = [];
+        if (preg_match_all('/\b(?:not|no|without|except|other than|don\'?t want)\s+([a-z]+)/', mb_strtolower($segment), $mm)) {
+            foreach ($mm[1] as $w) foreach ($m->tokens($w) as $tk) $out[$tk] = true;
+        }
+        return $out;
+    }
+
+    public static function subjectTerm(string $segment, array $catalogue): string
+    {
+        $m = new CatalogueMatcher();
+
+        $excluded = self::excludedTerms($segment);
+
+        // document frequency of each token across product NAMES
+        $nameFreq = [];
+        foreach ($catalogue as $p) {
+            foreach (array_unique($m->tokens((string) ($p['name'] ?? ''))) as $tk) {
+                $nameFreq[$tk] = ($nameFreq[$tk] ?? 0) + 1;
+            }
+        }
+
+        $best = ''; $bestFreq = 0; $rank = 0; $bestRank = PHP_INT_MAX;
+        foreach ($m->tokens($segment) as $tk) {
+            $rank++;
+            if (isset($excluded[$tk])) continue;
+            $f = $nameFreq[$tk] ?? 0;
+            if ($f <= 0) continue;                 // not a product noun at all
+            // prefer the most generic head; break ties by first appearance
+            if ($f > $bestFreq || ($f === $bestFreq && $rank < $bestRank)) {
+                $best = $tk; $bestFreq = $f; $bestRank = $rank;
+            }
+        }
+        return $best;
+    }
+
     /** Strip opinion/question filler to leave the product term. Pure. */
     public static function stripCues(string $text): string
     {
@@ -413,13 +531,29 @@ class SalesAssistantBrain
             }
         }
 
-        // 2) a product term inside the message
-        $term = self::stripCues($text);
-        $m    = new CatalogueMatcher();
+        // 2) the lead product noun of the DISCOVERY part of the message (robust to a whole
+        //    conversation crammed into one message: "Need rice ... family of 5 ... add 2 ...
+        //    checkout" -> "rice", never the word-soup that matched "Family Rice Flour").
+        $m       = new CatalogueMatcher();
+        $segment = self::discoverySegment($text);
+        $term    = self::subjectTerm($segment, $catalogue);
+        if ($term === '') $term = self::stripCues($segment);   // fallback for odd phrasings
         if ($term !== '') {
             $hits = $m->search($term, $catalogue);
             if ($hits) {
-                return [$term, array_map(fn ($c) => $c['product'], array_slice($hits, 0, 6))];
+                $cands = self::coherentCandidates($term, $hits);
+                // honour stated exclusions ("not basmati") by dropping those products,
+                // but never drop everything — if exclusion empties the set, keep the original.
+                $excluded = self::excludedTerms($segment);
+                if ($excluded) {
+                    $filtered = [];
+                    foreach ($cands as $p) {
+                        $nameTokens = $m->tokens((string) ($p['name'] ?? ''));
+                        if (! array_intersect($nameTokens, array_keys($excluded))) $filtered[] = $p;
+                    }
+                    if ($filtered) $cands = $filtered;
+                }
+                return [$term, array_slice($cands, 0, 6)];
             }
         }
 
@@ -428,7 +562,7 @@ class SalesAssistantBrain
         if ($last !== '') {
             $hits = $m->search($last, $catalogue);
             if ($hits) {
-                return [$last, array_map(fn ($c) => $c['product'], array_slice($hits, 0, 6))];
+                return [$last, array_slice(self::coherentCandidates($last, $hits), 0, 6)];
             }
         }
 

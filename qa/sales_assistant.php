@@ -30,6 +30,16 @@ ok('most popular one?',            SA::detect('most popular one?') === SA::OPINI
 ok('any good?',                    SA::detect('any good?') === SA::OPINION);
 ok('whats good',                   SA::detect('whats good') === SA::OPINION);
 
+sec('Intent detection — popularity / fast-moving (Indian customer phrasings)');
+ok('which one sells more?',        SA::detect('which one sells more?') === SA::OPINION);
+ok('which one moves fast?',        SA::detect('which one moves fast?') === SA::OPINION);
+ok('most people take which one?',  SA::detect('most people take which one?') === SA::OPINION);
+ok('what is popular?',             SA::detect('what is popular?') === SA::OPINION);
+ok('whats selling?',               SA::detect('whats selling?') === SA::OPINION);
+ok('best seller?',                 SA::detect('best seller?') === SA::OPINION);
+ok('what do people usually buy?',  SA::detect('what do people usually buy?') === SA::OPINION);
+ok('which rice sells more -> term "rice"', SA::stripCues('which rice sells more') === 'rice');
+
 sec('Intent detection — doubt');
 ok('are you sure?',                SA::detect('are you sure?') === SA::DOUBT);
 ok('you sure about that?',         SA::detect('you sure about that?') === SA::DOUBT);
@@ -75,12 +85,15 @@ $cands = [$A,$B,$C];
 
 $r = SA::pickRecommendation('rice', $cands, $B, []);            // owner default wins
 ok('owner default is chosen',      ($r['product']['id'] ?? null) === 2 && str_contains($r['basis'],'recommend'));
+ok('owner default tagged pick',    ($r['tag'] ?? null) === 'pick');
 
 $r = SA::pickRecommendation('rice', $cands, null, [1=>40,3=>5]); // no default -> best-seller (id 1)
 ok('best-seller chosen when no default', ($r['product']['id'] ?? null) === 1 && str_contains($r['basis'],'popular'));
+ok('best-seller tagged popular',   ($r['tag'] ?? null) === 'popular');
 
 $r = SA::pickRecommendation('rice', $cands, null, []);          // no default, no sales -> cheapest in stock (id 3)
 ok('best value chosen when no data', ($r['product']['id'] ?? null) === 3 && str_contains($r['basis'],'value'));
+ok('best value tagged value',      ($r['tag'] ?? null) === 'value');
 
 $r = SA::pickRecommendation('rice', [], null, []);              // nothing
 ok('empty -> no product',          ($r['product'] ?? null) === null);
